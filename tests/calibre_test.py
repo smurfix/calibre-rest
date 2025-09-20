@@ -83,40 +83,40 @@ def test_handle_search(search, expected):
     (
         (
             Book(title="foobar", series_index=4.5),
-            "calibredb add --series-index 4.5 --title foobar",
+            "calibredb add --series-index 4.5 --title foobar".split(),
         ),
         (
             Book(identifiers={"isbn": "abcd", "asin": 1234}),
-            "calibredb add --identifier isbn:abcd --identifier asin:1234",
+            "calibredb add --identifier isbn:abcd --identifier asin:1234".split(),
         ),
     ),
     ids=["simple", "identifiers"],
 )
 def test_handle_add_flags_simple(book, expected):
-    cmd = "calibredb add"
+    cmd = ["calibredb", "add"]
     got = dud_wrapper._handle_add_flags(cmd, book)
 
     assert got == expected
 
 
 def test_handle_add_flags_list():
-    cmd = "calibredb add"
+    cmd = ["calibredb", "add"]
     book = Book(tags=["foo", "bar", "example"])
     got = dud_wrapper._handle_add_flags(cmd, book)
-    expected = "calibredb add --tags foo,bar,example"
+    expected = "calibredb add --tags foo,bar,example".split()
 
     assert got == expected
 
 
 def test_handle_add_flags_list_with_spaces():
-    cmd = "calibredb add"
+    cmd = ["calibredb", "add"]
     book = Book(
         authors=["John Doe", " Ben Adams"],
         languages=["english ", " french"],
         tags=["foo", "bar", " two words "],
     )
     got = dud_wrapper._handle_add_flags(cmd, book)
-    expected = "calibredb add --authors 'John Doe & Ben Adams' --languages english,french --tags 'foo,bar,two words'"
+    expected = ["calibredb", "add", "--authors", 'John Doe & Ben Adams', "--languages", "english,french", "--tags", 'foo,bar,two words']
 
     assert got == expected
 
@@ -124,13 +124,13 @@ def test_handle_add_flags_list_with_spaces():
 @pytest.mark.parametrize(
     "book, expected",
     (
-        (Book(title="foobar", id=1234), "calibredb add --title foobar"),
-        (Book(pubdate="1234", size=1234), "calibredb add"),
+        (Book(title="foobar", id=1234), "calibredb add --title foobar".split()),
+        (Book(pubdate="1234", size=1234), "calibredb add".split()),
     ),
     ids=["valid and invalid", "all invalid"],
 )
 def test_handle_add_flags_invalid(book, expected):
-    cmd = "calibredb add"
+    cmd = ["calibredb", "add"]
     got = dud_wrapper._handle_add_flags(cmd, book)
 
     assert got == expected
