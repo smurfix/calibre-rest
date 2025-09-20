@@ -634,8 +634,8 @@ def test_export_books(url, seed_books):
     assert resp.status_code == HTTPStatus.OK
 
     z = zipfile.ZipFile(BytesIO(resp.content))
-    for i in range(len(z.namelist())):
-        assert f"foo{i+1}" in z.namelist()[i]
+    for i,name in enumerate(sorted(z.namelist())):
+        assert f"foo{i+1}" in name
 
 
 def get(url: str, id: int | str, code: IntEnum, mappings: dict = None):
