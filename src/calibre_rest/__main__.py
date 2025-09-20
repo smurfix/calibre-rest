@@ -3,23 +3,16 @@
 import argparse
 
 from calibre_rest import GunicornApp, __version__, create_app
-from config import DevConfig, ProdConfig
+from calibre_rest.config import DevConfig, ProdConfig
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Start calibre-rest server")
+    parser = argparse.ArgumentParser("calibre-rest")
     parser.add_argument(
         "-d",
         "--dev",
         required=False,
         action="store_true",
         help="Start in dev/debug mode",
-    )
-    parser.add_argument(
-        "-c",
-        "--calibre",
-        required=False,
-        type=str,
-        help="Path to calibre binary directory",
     )
     parser.add_argument(
         "-l", "--library", required=False, type=str, help="Path to calibre library"
@@ -54,7 +47,7 @@ if __name__ == "__main__":
 
     if args.dev:
         app_config = DevConfig(
-            calibredb=args.calibre,
+            calibredb="calibredb",
             library=args.library,
             bind_addr=args.bind,
             username=args.username,
@@ -66,7 +59,7 @@ if __name__ == "__main__":
 
     else:
         app_config = ProdConfig(
-            calibredb=args.calibre,
+            calibredb="calibredb",
             library=args.library,
             bind_addr=args.bind,
             username=args.username,
