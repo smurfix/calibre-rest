@@ -3,7 +3,7 @@ import os
 import pytest
 
 from calibre_rest.calibre import CalibreWrapper
-from config import TestConfig
+from calibre_rest.config import TestConfig
 
 
 @pytest.fixture()

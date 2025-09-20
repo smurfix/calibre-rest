@@ -9,7 +9,7 @@ import pytest
 from werkzeug.serving import make_server
 
 from calibre_rest import create_app
-from config import TestConfig
+from calibre_rest.config import TestConfig
 
 TEST_CALIBREDB_PATH = os.environ.get("CALIBRE_REST_TEST_PATH", "./calibre/calibredb")
 TEST_LIBRARY_PATH = os.environ.get(

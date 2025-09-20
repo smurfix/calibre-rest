@@ -4,7 +4,7 @@ from flask import Flask
 from gunicorn.app.base import BaseApplication
 
 from calibre_rest.calibre import CalibreWrapper
-from config import DevConfig
+from .config import DevConfig
 
 __version__ = "0.1.0"
 
