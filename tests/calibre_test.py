@@ -32,50 +32,50 @@ def test_run_success(calibre):
 @pytest.mark.parametrize(
     "keys, expected",
     (
-        pytest.param(["id"], " --ascending --sort-by=id", id="ascending"),
-        pytest.param(["-id"], " --sort-by=id", id="descending"),
+        pytest.param(["id"], "--ascending --sort-by=id", id="ascending"),
+        pytest.param(["-id"], "--sort-by=id", id="descending"),
         pytest.param(
             ["title", "authors", "uuid"],
-            " --ascending --sort-by=title,authors,uuid",
+            "--ascending --sort-by=title,authors,uuid",
             id="multiple",
         ),
         pytest.param(
             ["title", "authors", "-uuid"],
-            " --sort-by=title,authors,uuid",
+            "--sort-by=title,authors,uuid",
             id="multiple descending",
         ),
-        pytest.param([], " --ascending", id="empty"),
-        pytest.param(["not_exist"], " --ascending", id="invalid"),
+        pytest.param([], "--ascending", id="empty"),
+        pytest.param(["not_exist"], "--ascending", id="invalid"),
         pytest.param(
             ["title", "not_exist"],
-            " --ascending --sort-by=title",
+            "--ascending --sort-by=title",
             id="mixed invalid",
         ),
     ),
 )
 def test_handle_sort(keys, expected):
-    cmd = "calibredb list"
-    got = dud_wrapper._handle_sort(cmd, keys)
-    assert got == "calibredb list" + expected
+    cmd = ["calibredb", "list"]
+    dud_wrapper._handle_sort(cmd, keys)
+    assert cmd == ["calibredb","list"] + expected.split()
 
 
 @pytest.mark.parametrize(
     "search, expected",
     (
-        pytest.param(["title:foo"], ' --search "title:foo"', id="single"),
+        pytest.param(["title:foo"], ['--search', 'title:foo'], id="single"),
         pytest.param(
             ["title:foo", "id:5", "series:bar"],
-            ' --search "title:foo id:5 series:bar"',
+            ['--search', "title:foo id:5 series:bar"],
             id="multiple",
         ),
-        pytest.param(["title:^f*"], ' --search "title:^f*"', id="regex"),
-        pytest.param([], "", id="empty"),
+        pytest.param(["title:^f*"], ['--search', "title:^f*"], id="regex"),
+        pytest.param([], [], id="empty"),
     ),
 )
 def test_handle_search(search, expected):
-    cmd = "calibredb list"
-    got = dud_wrapper._handle_search(cmd, search)
-    assert got == "calibredb list" + expected
+    cmd = ["calibredb", "list"]
+    dud_wrapper._handle_search(cmd, search)
+    assert cmd == ["calibredb", "list"] + expected
 
 
 @pytest.mark.parametrize(
@@ -83,29 +83,29 @@ def test_handle_search(search, expected):
     (
         (
             Book(title="foobar", series_index=4.5),
-            "calibredb add --series-index 4.5 --title foobar".split(),
+            ["calibredb", "add", "--series-index", 4.5, "--title", "foobar"],
         ),
         (
             Book(identifiers={"isbn": "abcd", "asin": 1234}),
-            "calibredb add --identifier isbn:abcd --identifier asin:1234".split(),
+            ["calibredb", "add", "--identifier", "isbn:abcd", "--identifier", "asin:1234"],
         ),
     ),
     ids=["simple", "identifiers"],
 )
 def test_handle_add_flags_simple(book, expected):
     cmd = ["calibredb", "add"]
-    got = dud_wrapper._handle_add_flags(cmd, book)
+    dud_wrapper._handle_add_flags(cmd, book)
 
-    assert got == expected
+    assert cmd == expected
 
 
 def test_handle_add_flags_list():
     cmd = ["calibredb", "add"]
     book = Book(tags=["foo", "bar", "example"])
-    got = dud_wrapper._handle_add_flags(cmd, book)
+    dud_wrapper._handle_add_flags(cmd, book)
     expected = "calibredb add --tags foo,bar,example".split()
 
-    assert got == expected
+    assert cmd == expected
 
 
 def test_handle_add_flags_list_with_spaces():
@@ -115,10 +115,10 @@ def test_handle_add_flags_list_with_spaces():
         languages=["english ", " french"],
         tags=["foo", "bar", " two words "],
     )
-    got = dud_wrapper._handle_add_flags(cmd, book)
+    dud_wrapper._handle_add_flags(cmd, book)
     expected = ["calibredb", "add", "--authors", 'John Doe & Ben Adams', "--languages", "english,french", "--tags", 'foo,bar,two words']
 
-    assert got == expected
+    assert cmd == expected
 
 
 @pytest.mark.parametrize(
@@ -131,9 +131,9 @@ def test_handle_add_flags_list_with_spaces():
 )
 def test_handle_add_flags_invalid(book, expected):
     cmd = ["calibredb", "add"]
-    got = dud_wrapper._handle_add_flags(cmd, book)
+    dud_wrapper._handle_add_flags(cmd, book)
 
-    assert got == expected
+    assert cmd == expected
 
 
 @pytest.mark.parametrize(
@@ -144,49 +144,49 @@ def test_handle_add_flags_invalid(book, expected):
     ),
 )
 def test_handle_update_flags(book, expected):
-    cmd = "calibredb set_metadata 1"
-    got = dud_wrapper._handle_update_flags(cmd, book)
-    assert got == expected
+    cmd = "calibredb set_metadata 1".split()
+    dud_wrapper._handle_update_flags(cmd, book)
+    assert cmd == expected.split()
 
 
 def test_handle_update_flags_list():
-    cmd = "calibredb set_metadata 1"
+    cmd = "calibredb set_metadata 1".split()
     book = Book(tags=["foo", "bar"])
 
-    got = dud_wrapper._handle_update_flags(cmd, book)
-    expected = "calibredb set_metadata 1 --field tags:foo,bar"
+    dud_wrapper._handle_update_flags(cmd, book)
+    expected = "calibredb set_metadata 1 --field tags:foo,bar".split()
 
-    assert got == expected
+    assert cmd == expected
 
 
 def test_handle_update_flags_list_with_spaces():
-    cmd = "calibredb set_metadata 1"
+    cmd = "calibredb set_metadata 1".split()
     book = Book(tags=["foo", "bar", " two words"])
 
-    got = dud_wrapper._handle_update_flags(cmd, book)
-    expected = "calibredb set_metadata 1 --field 'tags:foo,bar,two words'"
+    dud_wrapper._handle_update_flags(cmd, book)
+    expected = ["calibredb", "set_metadata", "1", "--field", "tags:foo,bar,two words"]
 
-    assert got == expected
+    assert cmd == expected
 
 
 def test_handle_update_flags_authors():
-    cmd = "calibredb set_metadata 1"
+    cmd = "calibredb set_metadata 1".split()
     book = Book(authors=["John Doe", " Ben Adams"])
 
-    got = dud_wrapper._handle_update_flags(cmd, book)
-    expected = "calibredb set_metadata 1 --field 'authors:John Doe & Ben Adams'"
+    dud_wrapper._handle_update_flags(cmd, book)
+    expected = ["calibredb", "set_metadata", "1", "--field", "authors:John Doe & Ben Adams"]
 
-    assert got == expected
+    assert cmd == expected
 
 
 def test_handle_update_flags_identifiers():
-    cmd = "calibredb set_metadata 1"
+    cmd = "calibredb set_metadata 1".split()
     book = Book(identifiers={"isbn": 1234, "asin": "abcd"})
 
-    got = dud_wrapper._handle_update_flags(cmd, book)
-    expected = "calibredb set_metadata 1 --field identifiers:isbn:1234,asin:abcd"
+    dud_wrapper._handle_update_flags(cmd, book)
+    expected = "calibredb set_metadata 1 --field identifiers:isbn:1234,asin:abcd".split()
 
-    assert got == expected
+    assert cmd == expected
 
 
 @pytest.mark.parametrize(
@@ -200,6 +200,6 @@ def test_handle_update_flags_identifiers():
     ),
 )
 def test_handle_update_flags_invalid(book, expected):
-    cmd = "calibredb set_metadata 1"
-    got = dud_wrapper._handle_update_flags(cmd, book)
-    assert got == expected
+    cmd = "calibredb set_metadata 1".split()
+    dud_wrapper._handle_update_flags(cmd, book)
+    assert cmd == expected.split()

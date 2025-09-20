@@ -289,14 +289,10 @@ class CalibreWrapper:
         if not all:
             max_limit = "5000"
 
-        cmd = (
-            f"{self.cdb_with_lib} list "
-            f"--for-machine --fields=all "
-            f"--limit={max_limit}"
-        )
+        cmd = self.cdb_with_lib + ["list", "--for-machine", "--fields=all", f"--limit={max_limit}"]
 
-        cmd = self._handle_sort(cmd, sort)
-        cmd = self._handle_search(cmd, search)
+        self._handle_sort(cmd, sort)
+        self._handle_search(cmd, search)
 
         out, _ = self._run(cmd)
 
@@ -306,23 +302,23 @@ class CalibreWrapper:
 
         return [Book(**b) for b in books]
 
-    def _handle_sort(self, cmd: str, sort: list[str]) -> str:
+    def _handle_sort(self, cmd: list[str], sort: list[str]) -> None:
         """Handle sort.
 
         Defaults to ascending sort, unless a `-` is prepended to ANY sort keys.
         Sort keys that are not supported are dropped with a warning.
 
         Args:
-            cmd (str): Command string to run
+            cmd (list[str]): Command string to run
             sort (list[str]): List of sort keys
 
         Returns:
-            str: Command string with sort flags
+            None. Command is modified.
         """
         if sort is None or not len(sort):
             # default to ascending
-            cmd += " --ascending"
-            return cmd
+            cmd.append("--ascending")
+            return
 
         # filter for unsupported sort keys
         safe_sort = [x for x in sort if x.removeprefix("-") in self.SORT_BY_KEYS]
@@ -335,21 +331,19 @@ class CalibreWrapper:
 
         descending = any(map(lambda x: x.startswith("-"), safe_sort))
         if not descending:
-            cmd += " --ascending"
+            cmd.append("--ascending")
 
         if len(safe_sort):
             safe_sort = [x.removeprefix("-") for x in safe_sort]
             safe_sort = ",".join(safe_sort)
-            cmd += f" --sort-by={safe_sort}"
-
-        return cmd
+            cmd.append(f"--sort-by={safe_sort}")
 
     def _handle_search(self, cmd: str, search: list[str]) -> str:
         if search is None or not len(search):
-            return cmd
+            return
 
-        cmd += f' --search "{" ".join(search)}"'
-        return cmd
+        cmd.append("--search")
+        cmd.append(f"{' '.join(search) }")
 
     def add_multiple(
         self, book_paths: list[str], book: Book = None, automerge: str = "ignore"

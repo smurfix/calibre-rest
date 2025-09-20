@@ -87,11 +87,11 @@ def url(setup):
 def calibredb_clone(library, new_library) -> (str, str):
     """Clone calibre library."""
 
-    cmd = f"{TEST_CALIBREDB_PATH} --with-library {library} clone {new_library}"
+    cmd = [TEST_CALIBREDB_PATH, "--with-library", library, "clone", new_library]
 
     try:
         process = subprocess.run(
-            shlex.split(cmd),
+            cmd,
             capture_output=True,
             check=True,
             text=True,
