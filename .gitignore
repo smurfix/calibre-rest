@@ -12,3 +12,5 @@ exports/*
 calibre/*
 library/*
 *.ini
+
+/tests/integration/testdata/
