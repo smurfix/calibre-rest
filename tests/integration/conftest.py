@@ -1,9 +1,13 @@
 import os
 import re
+import sys
 import shlex
 import subprocess
 import threading
+import socket
+import time
 from urllib.parse import urlsplit
+from traceback import print_exc
 
 import pytest
 from werkzeug.serving import make_server
@@ -16,6 +20,20 @@ TEST_LIBRARY_PATH = os.environ.get(
     "CALIBRE_REST_TEST_LIBRARY", "./tests/integration/testdata"
 )
 TEST_BIND_ADDR = os.environ.get("CALIBRE_REST_TEST_ADDR", "localhost:5000")
+SERV_BIND_ADDR = os.environ.get("CALIBRE_REST_SERV_ADDR", "localhost:5001")
+
+def conn_to(port:int):
+    for _ in range(30):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.connect(('127.0.0.1', port))
+        except Exception:
+            time.sleep(.1)
+        else:
+            return
+        finally:
+            sock.close()
+    raise RuntimeError(f"no socket {port}")
 
 
 class MockServer:
@@ -40,18 +58,49 @@ class MockServer:
         url = urlsplit(self.bind_addr, scheme="http")
         self.app = create_app(
             TestConfig(
-                calibredb=TEST_CALIBREDB_PATH, library=library, bind_addr=url.netloc
+                calibredb=TEST_CALIBREDB_PATH, library="http://"+SERV_BIND_ADDR, bind_addr=url.netloc
             )
         )
-        self.server = make_server(url.hostname, url.port, app=self.app)
+        self.server = make_server(url.hostname, url.port, app=self.app, passthrough_errors=True)
+
+    def run(self):
+        while True:
+            try:
+                self.server.serve_forever()
+            except Exception:
+                with open("/tmp/err","w") as f:
+                    print_exc(file=f)
+                    raise
+            else:
+                return
 
     def start(self):
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        host,port = SERV_BIND_ADDR.split(":")
+        self.proc = subprocess.Popen(["calibre-server","--port",port, "--disable-use-bonjour", "--disable-auth", "--listen-on=127.0.0.1", "--trusted-ips=127.0.0.1", TEST_LIBRARY_PATH], stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
+
+        try:
+            conn_to(int(port))
+        except BaseException:
+            self.proc.kill()
+            raise
+
+        self.thread = threading.Thread(target=self.run, daemon=True)
         self.thread.start()
+        
+        try:
+            conn_to(int(TEST_BIND_ADDR.split(":")[1]))
+        except BaseException:
+            self.server.shutdown()
+            self.thread.join()
+            self.proc.kill()
+            raise
+
+
 
     def stop(self):
         self.server.shutdown()
         self.thread.join()
+        self.proc.kill()
 
 
 @pytest.fixture(scope="session")

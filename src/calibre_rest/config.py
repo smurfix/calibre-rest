@@ -74,7 +74,7 @@ class TestConfig(Config):
             if v is not None and k != "self":
                 Config.set(k, v)
 
-        Config.set("testing", True)
+        Config.set("testing", False)
 
 
 class ProdConfig(Config):

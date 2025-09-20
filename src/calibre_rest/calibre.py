@@ -1,11 +1,22 @@
 import json
 import logging
 import re
+import io
 import shlex
 import shutil
-import subprocess
+import tempfile
 import threading
 from os import path
+
+import sys
+sys.new_app_layout = True
+sys.extensions_location = "/nonexistent"
+sys.resources_location = "/usr/share/calibre"
+try:
+    import calibre_extensions
+except ImportError:
+    from . import _extensions as ext
+    sys.modules["calibre_extensions"] = ext
 
 from calibre_rest.errors import (
     CalibreConcurrencyError,
@@ -14,6 +25,7 @@ from calibre_rest.errors import (
 )
 from calibre_rest.models import Book
 
+from calibre.db.cli.main import DBCtx, run_cmd
 
 class CalibreWrapper:
     # Flags for calibredb add subcommand. The keys represent the attributes
@@ -110,6 +122,9 @@ class CalibreWrapper:
         r"^The following books were not added as they already exist.*"
     )
 
+    username:str|None = None
+    password:str|None = None
+
     def __init__(
         self,
         calibredb: str,
@@ -138,6 +153,8 @@ class CalibreWrapper:
         self.cdb_with_lib = [self.cdb, "--with-library", self.lib]
 
         if username != "" and password != "":
+            self.username = username
+            self.password = password
             self.cdb_with_lib.extend(["--username", username, "--password", password])
 
         # It is safer to limit calibredb to running one operation at any given
@@ -156,11 +173,6 @@ class CalibreWrapper:
         """
         if not shutil.which(self.cdb):
             raise FileNotFoundError(f"{self.cdb} is not a valid executable")
-
-        if not path.exists(path.join(self.lib, "metadata.db")):
-            raise FileNotFoundError(
-                f"Failed to find Calibre database file {path.join(self.lib, 'metadata.db')}"
-            )
 
     def _run(self, cmd: list[str]|str) -> (str, str):
         """Execute calibredb on the command line.
@@ -182,6 +194,7 @@ class CalibreWrapper:
             CalibreConcurrencyError: Calibre detects another Calibre program to
                 be running.
         """
+        from calibre.db.cli.main import main as _main
         self.logger.debug(f'Running "{cmd}"')
         if isinstance(cmd,str):
             cmd = shlex.split(cmd)
@@ -189,32 +202,34 @@ class CalibreWrapper:
         try:
             self.mutex.acquire()
 
-            process = subprocess.run(
-                shlex.split(cmd),
-                capture_output=True,
-                check=True,
-                text=True,
-                encoding="utf-8",
-                env=None,
-                timeout=None,
-            )
-        except FileNotFoundError as err:
-            raise FileNotFoundError(f"Executable could not be found.\n\n{err}") from err
+            with tempfile.TemporaryFile(mode="w+") as out:
+                err = io.StringIO()
 
-        except subprocess.CalledProcessError as e:
-            match = re.search(self.CONCURRENCY_ERR_REGEX, e.stderr)
-            if match is not None:
-                raise CalibreConcurrencyError(e.cmd, e.returncode)
-            else:
-                raise CalibreRuntimeError(e.cmd, e.returncode, e.stdout, e.stderr)
+                _out,sys.stdout = sys.stdout,out
+                _err,sys.stderr = sys.stderr,err
+                try:
+                    _main(args=cmd)
+                finally:
+                    sys.stdout = _out
+                    sys.stderr = _err
+                    out.seek(0)
+                    err.seek(0)
+                    out = out.read()
+                    err = err.getvalue()
+                return out,err
+
+        except ModuleNotFoundError as exc:
+            raise FileNotFoundError("Executable could not be found.") from exc
+
+        except SystemExit as exc:
+            err = exc.args[0]
+            if len(err)>2 and err[0] in "'\"" and err[0] == err[-1]:
+                err = err[1:-1]
+                raise CalibreRuntimeError(cmd=cmd,exit_code=1,stdout=out,stderr=err)
+            raise
 
         finally:
             self.mutex.release()
-
-        if process.stderr:
-            self.logger.warning(process.stderr)
-
-        return process.stdout, process.stderr
 
     def version(self) -> str:
         """Get calibredb version.
@@ -573,7 +588,7 @@ class CalibreWrapper:
         if not all(i >= 0 for i in ids):
             raise ValueError(f"{ids=} not allowed")
 
-        cmd = self.cdb_with_lib + ["remove"] + [str(id) for id in ids]
+        cmd = self.cdb_with_lib + ["remove", ",".join(str(id) for id in ids)]
         if permanent:
             cmd.append("--permanent")
 

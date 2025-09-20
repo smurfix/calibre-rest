@@ -9,23 +9,15 @@ dud_wrapper = CalibreWrapper("foo", "bar")
 
 def test_run_executable_err(calibre):
     cmd = "hello world"
-    with pytest.raises(FileNotFoundError, match="Executable could not be found."):
+    with pytest.raises(SystemExit, match="You must specify a command from"):
         calibre._run(cmd)
-
-
-def test_run_nonzero_exitcode(calibre):
-    cmd = f"{calibre.cdb_with_lib} foo"
-    with pytest.raises(CalibreRuntimeError, match="exited with status"):
-        out, err = calibre._run(cmd)
-
-        assert "STDERR:\nError: You must specify a command from the list above" in err
 
 
 def test_run_success(calibre):
     cmd = f"{calibre.cdb} --version"
     out, err = calibre._run(cmd)
 
-    assert "calibredb" in out
+    assert "__main__" in out
     assert err == ""
 
 

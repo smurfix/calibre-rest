@@ -7,9 +7,9 @@ library.
 
 ### Disclaimer
 
-- calibre-rest is in pre-alpha and subject to bugs and breaking changes. Please
+- calibre-rest is alpha code and subject to bugs and breaking changes. Please
 use it at your own risk.
-- This project has been tested on `amd64` Linux systems with Calibre 6.21 only.
+- This code has been tested on `amd64` Linux systems with Calibre 8.5.0.
 - Contributions for testing and support on other OS platforms and Calibre versions
 are greatly welcome.
 
@@ -51,16 +51,12 @@ calibre-rest requires the following dependencies:
 
 - A Calibre library on the local filesystem or served by a [Calibre content
   server](https://manual.calibre-ebook.com/generated/en/calibre-server.html)
-- Python >3.7 but Python 3.11 is recommended.
-- The `calibre` binary with the `calibredb` executable.
-- Calibre's system dependencies (on Linux):
+- Python >3.7 but Python 3.13 is recommended.
+- The `calibre` Python library, at `/usr/lib/calibre`.
+- Calibre's system dependencies.
 
-```
-$ apt-get install xdg-utils, xz-utils, libopengl0, libegl1
-```
-
-The latter two are only relevant if you wish to run calibre-rest directly on
-your local machine.
+The latter two are satisfied when you install calibre on your local machine.
+If not, set the environment variable `CALIBRE_LIBRARY` appropriately.
 
 ### Docker
 

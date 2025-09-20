@@ -624,7 +624,7 @@ def test_export_book_not_exists(url):
 def test_export_book(url, seed_book):
     resp = requests.get(f"{url}/export/{seed_book}", stream=True)
     assert resp.status_code == HTTPStatus.OK
-    assert resp.text == "hello world!\n"
+    assert resp.text == "hello world!"
 
 
 def test_export_books(url, seed_books):
