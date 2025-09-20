@@ -133,8 +133,8 @@ class CalibreWrapper:
             logger = logging.getLogger(__name__)
         self.logger = logger
 
-        self.cdb = path.abspath(calibredb)
-        self.lib = path.abspath(lib)
+        self.cdb = calibredb
+        self.lib = lib
         self.cdb_with_lib = f"{self.cdb} --with-library {self.lib}"
 
         if username != "" and password != "":
